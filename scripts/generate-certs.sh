@@ -7,13 +7,10 @@ ENV_FILE="$ROOT_DIR/.env"
 mkdir -p "$CERT_DIR"
 
 if [ -f "$ENV_FILE" ]; then
-    set -a
-    # shellcheck disable=SC1090
-    . "$ENV_FILE"
-    set +a
+    KEYSTORE_PASSWORD="$(awk -F= '$0 ~ "^[[:space:]]*SSL_KEYSTORE_PASSWORD=" {print substr($0, index($0, "=")+1)}' "$ENV_FILE" | tail -n1)"
 fi
 
-KEYSTORE_PASSWORD="${SSL_KEYSTORE_PASSWORD:-}"
+KEYSTORE_PASSWORD="${SSL_KEYSTORE_PASSWORD:-${KEYSTORE_PASSWORD:-}}"
 if [ -z "$KEYSTORE_PASSWORD" ] || [ "$KEYSTORE_PASSWORD" = "changeme" ]; then
     echo "SSL_KEYSTORE_PASSWORD must be set to a non-default value (in .env or environment)." >&2
     exit 1

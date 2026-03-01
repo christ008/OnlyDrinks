@@ -46,10 +46,6 @@ ensure_env_file() {
 
 load_env() {
   ensure_env_file
-  set -a
-  # shellcheck disable=SC1090
-  . "$ENV_FILE"
-  set +a
 }
 
 upsert_env() {
@@ -61,6 +57,24 @@ upsert_env() {
   else
     printf "%s=%s\n" "$key" "$value" >>"$ENV_FILE"
   fi
+}
+
+read_env_file_var() {
+  local key="$1"
+  if [ ! -f "$ENV_FILE" ]; then
+    return 1
+  fi
+  awk -F= -v key="$key" '$0 ~ "^[[:space:]]*"key"=" {sub(/^[[:space:]]+/, "", $2); print substr($0, index($0, "=")+1)}' "$ENV_FILE" | tail -n1
+}
+
+get_var() {
+  local key="$1"
+  local value="${!key-}"
+  if [ -n "$value" ]; then
+    printf "%s" "$value"
+    return 0
+  fi
+  read_env_file_var "$key" || true
 }
 
 generate_secret() {
@@ -75,25 +89,29 @@ is_weak_secret() {
 init_secrets() {
   load_env
 
-  local db_password="${DB_PASSWORD:-}"
+  local db_password
+  db_password="$(get_var DB_PASSWORD)"
   if is_weak_secret "$db_password"; then
     upsert_env "DB_PASSWORD" "$(generate_secret)"
     echo "Set strong DB_PASSWORD in .env"
   fi
 
-  local keystore_password="${SSL_KEYSTORE_PASSWORD:-}"
+  local keystore_password
+  keystore_password="$(get_var SSL_KEYSTORE_PASSWORD)"
   if is_weak_secret "$keystore_password"; then
     upsert_env "SSL_KEYSTORE_PASSWORD" "$(generate_secret)"
     echo "Set strong SSL_KEYSTORE_PASSWORD in .env"
   fi
 
-  local bootstrap_enabled="${BOOTSTRAP_ADMIN_ENABLED:-true}"
+  local bootstrap_enabled
+  bootstrap_enabled="$(get_var BOOTSTRAP_ADMIN_ENABLED)"
+  bootstrap_enabled="${bootstrap_enabled:-true}"
   upsert_env "BOOTSTRAP_ADMIN_ENABLED" "$bootstrap_enabled"
 
   if [ "$bootstrap_enabled" = "true" ]; then
-    [ -n "${BOOTSTRAP_ADMIN_USERNAME:-}" ] || upsert_env "BOOTSTRAP_ADMIN_USERNAME" "admin"
-    [ -n "${BOOTSTRAP_ADMIN_NAME:-}" ] || upsert_env "BOOTSTRAP_ADMIN_NAME" "OnlyDrinks Admin"
-    if is_weak_secret "${BOOTSTRAP_ADMIN_PASSWORD:-}"; then
+    [ -n "$(get_var BOOTSTRAP_ADMIN_USERNAME)" ] || upsert_env "BOOTSTRAP_ADMIN_USERNAME" "admin"
+    [ -n "$(get_var BOOTSTRAP_ADMIN_NAME)" ] || upsert_env "BOOTSTRAP_ADMIN_NAME" "OnlyDrinks Admin"
+    if is_weak_secret "$(get_var BOOTSTRAP_ADMIN_PASSWORD)"; then
       upsert_env "BOOTSTRAP_ADMIN_PASSWORD" "$(generate_secret)"
       echo "Set strong BOOTSTRAP_ADMIN_PASSWORD in .env"
     fi
@@ -104,6 +122,17 @@ init_secrets() {
 
 validate_env() {
   load_env
+
+  local DB_NAME DB_USERNAME DB_PASSWORD SSL_KEYSTORE_PASSWORD BOOTSTRAP_ADMIN_ENABLED BOOTSTRAP_ADMIN_USERNAME BOOTSTRAP_ADMIN_NAME BOOTSTRAP_ADMIN_PASSWORD
+  DB_NAME="$(get_var DB_NAME)"
+  DB_USERNAME="$(get_var DB_USERNAME)"
+  DB_PASSWORD="$(get_var DB_PASSWORD)"
+  SSL_KEYSTORE_PASSWORD="$(get_var SSL_KEYSTORE_PASSWORD)"
+  BOOTSTRAP_ADMIN_ENABLED="$(get_var BOOTSTRAP_ADMIN_ENABLED)"
+  BOOTSTRAP_ADMIN_USERNAME="$(get_var BOOTSTRAP_ADMIN_USERNAME)"
+  BOOTSTRAP_ADMIN_NAME="$(get_var BOOTSTRAP_ADMIN_NAME)"
+  BOOTSTRAP_ADMIN_PASSWORD="$(get_var BOOTSTRAP_ADMIN_PASSWORD)"
+  BOOTSTRAP_ADMIN_ENABLED="${BOOTSTRAP_ADMIN_ENABLED:-true}"
 
   local required_vars=(
     DB_NAME DB_USERNAME DB_PASSWORD
@@ -125,7 +154,7 @@ validate_env() {
     exit 1
   fi
 
-  if [ "${BOOTSTRAP_ADMIN_ENABLED:-true}" = "true" ]; then
+  if [ "$BOOTSTRAP_ADMIN_ENABLED" = "true" ]; then
     local admin_required=(BOOTSTRAP_ADMIN_USERNAME BOOTSTRAP_ADMIN_NAME BOOTSTRAP_ADMIN_PASSWORD)
     for var in "${admin_required[@]}"; do
       if [ -z "${!var:-}" ]; then

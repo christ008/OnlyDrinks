@@ -3,7 +3,21 @@ set -e
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CERT_DIR="$ROOT_DIR/certs"
+ENV_FILE="$ROOT_DIR/.env"
 mkdir -p "$CERT_DIR"
+
+if [ -f "$ENV_FILE" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "$ENV_FILE"
+    set +a
+fi
+
+KEYSTORE_PASSWORD="${SSL_KEYSTORE_PASSWORD:-}"
+if [ -z "$KEYSTORE_PASSWORD" ] || [ "$KEYSTORE_PASSWORD" = "changeme" ]; then
+    echo "SSL_KEYSTORE_PASSWORD must be set to a non-default value (in .env or environment)." >&2
+    exit 1
+fi
 
 set_cert_permissions() {
     # Readable cert material for containers, strict perms for private keys.
@@ -81,11 +95,11 @@ openssl x509 -req -in "$CERT_DIR/db.csr" -CA "$CERT_DIR/ca.crt" -CAkey "$CERT_DI
 
 echo "Generating PKCS12 keystore for App..."
 openssl pkcs12 -export -in "$CERT_DIR/app.crt" -inkey "$CERT_DIR/app.key" \
-    -out "$CERT_DIR/keystore.p12" -name onlydrinks -password pass:changeme
+    -out "$CERT_DIR/keystore.p12" -name onlydrinks -password pass:"$KEYSTORE_PASSWORD"
 
 echo "Generating Truststore for App..."
 openssl pkcs12 -export -nokeys -in "$CERT_DIR/ca.crt" \
-    -out "$CERT_DIR/truststore.p12" -name caroot -password pass:changeme
+    -out "$CERT_DIR/truststore.p12" -name caroot -password pass:"$KEYSTORE_PASSWORD"
 
 # Cleanup CSRs and configs
 rm "$CERT_DIR"/*.csr "$CERT_DIR"/*.conf "$CERT_DIR"/*.srl

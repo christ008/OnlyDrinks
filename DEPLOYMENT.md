@@ -67,38 +67,44 @@ Default dev users are seeded in `dev` profile only.
 
 ```bash
 cp .env.example .env
+chmod 600 .env
 ```
 
-2. Set required values in `.env`:
-
-```dotenv
-DB_PASSWORD=your_secure_password
-SSL_KEYSTORE_PASSWORD=changeme
-```
-
-3. Generate local certificates:
+2. (Recommended) initialize strong secrets automatically:
 
 ```bash
-./scripts/generate-certs.sh
+./scripts/deploy.sh init-secrets
 ```
 
-4. Build image with buildpacks:
+3. Review and adjust `.env`:
 
 ```bash
-./mvnw spring-boot:build-image
+vi .env
 ```
 
-5. Start stack:
+Required security-sensitive values:
+
+- `DB_PASSWORD`
+- `SSL_KEYSTORE_PASSWORD`
+- `BOOTSTRAP_ADMIN_PASSWORD` (when `BOOTSTRAP_ADMIN_ENABLED=true`)
+
+4. Validate configuration before deploy:
 
 ```bash
-docker compose up -d
+./scripts/deploy.sh validate
+```
+
+5. Provision and deploy (certs + image build + compose + health checks):
+
+```bash
+./scripts/deploy.sh provision
 ```
 
 6. Check status/logs:
 
 ```bash
-docker compose ps
-docker compose logs -f app
+./scripts/deploy.sh ps
+./scripts/deploy.sh logs
 ```
 
 Access:
@@ -121,6 +127,7 @@ Access:
 - `SSL_KEYSTORE_PATH`, `SSL_KEYSTORE_PASSWORD`
 - `MANAGEMENT_SERVER_PORT` (default `8081`)
 - `MANAGEMENT_SERVER_SSL_ENABLED` (default `false`)
+- `BOOTSTRAP_ADMIN_ENABLED`, `BOOTSTRAP_ADMIN_USERNAME`, `BOOTSTRAP_ADMIN_NAME`, `BOOTSTRAP_ADMIN_PASSWORD`
 
 ### Why Management Port 8081 Exists
 
@@ -153,3 +160,11 @@ docker compose exec -T postgres psql -U onlydrinks onlydrinks < backup.sql
   - check `scripts/postgres-ssl-entrypoint.sh` is mounted/readable
 - Port collisions:
   - adjust `APP_PORT`, `APP_SSL_PORT`, `DB_PORT` in `.env`
+
+## Security Checklist
+
+- Never commit real `.env` values to VCS.
+- Keep `.env` file mode `600`.
+- Use strong random secrets (the deploy script can generate them).
+- Rotate `DB_PASSWORD`, `SSL_KEYSTORE_PASSWORD`, and `BOOTSTRAP_ADMIN_PASSWORD` regularly.
+- Disable `BOOTSTRAP_ADMIN_ENABLED` after first successful production bootstrap.

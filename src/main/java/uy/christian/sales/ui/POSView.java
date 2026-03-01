@@ -63,7 +63,9 @@ public class POSView extends VerticalLayout implements MessageSupport {
         setSizeFull();
         customerComboBox.setLabel(msg("pos.form.customer"));
         product.setLabel(msg("pos.form.product"));
+        product.setRequiredIndicatorVisible(true);
         quantity.setLabel(msg("pos.form.quantity"));
+        quantity.setRequiredIndicatorVisible(true);
         placeOrderButton.setText(msg("pos.action.place"));
         placeOrderButton.addClickListener(e -> placeOrder());
         totalSpan.setText(msg("pos.total", "0.00"));

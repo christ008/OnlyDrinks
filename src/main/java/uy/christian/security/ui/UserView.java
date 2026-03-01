@@ -63,9 +63,12 @@ public class UserView extends VerticalLayout implements MessageSupport {
         setSizeFull();
 
         username.setLabel(msg("users.form.username"));
+        username.setRequiredIndicatorVisible(true);
         name.setLabel(msg("users.form.name"));
+        name.setRequiredIndicatorVisible(true);
         password.setLabel(msg("users.form.password"));
         role.setLabel(msg("users.form.role"));
+        role.setRequiredIndicatorVisible(true);
 
         add(new H2(msg("users.title")));
 

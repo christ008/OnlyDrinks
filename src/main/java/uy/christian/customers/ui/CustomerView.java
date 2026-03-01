@@ -55,6 +55,7 @@ public class CustomerView extends VerticalLayout implements MessageSupport {
         setSizeFull();
 
         name.setLabel(msg("customers.form.name"));
+        name.setRequiredIndicatorVisible(true);
         email.setLabel(msg("customers.form.email"));
         phone.setLabel(msg("customers.form.phone"));
         address.setLabel(msg("customers.form.address"));

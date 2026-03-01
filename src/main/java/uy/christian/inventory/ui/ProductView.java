@@ -57,9 +57,12 @@ public class ProductView extends VerticalLayout implements MessageSupport {
         setSizeFull();
 
         name.setLabel(msg("inventory.form.name"));
+        name.setRequiredIndicatorVisible(true);
         description.setLabel(msg("inventory.form.description"));
         stockQuantity.setLabel(msg("inventory.form.stock"));
+        stockQuantity.setRequiredIndicatorVisible(true);
         price.setLabel(msg("inventory.form.price"));
+        price.setRequiredIndicatorVisible(true);
 
         add(new H2(msg("inventory.title")));
 

@@ -1,0 +1,19 @@
+vaadin:
+  launch-browser: true
+
+spring:
+  jpa:
+    show-sql: true
+    defer-datasource-initialization: false
+  sql:
+    init:
+      mode: never
+  datasource:
+    url: jdbc:h2:file:./data/onlydrinks
+    driverClassName: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console

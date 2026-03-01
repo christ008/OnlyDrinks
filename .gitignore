@@ -4,6 +4,9 @@
 .settings
 .project
 .classpath
+.env
+certs/
+data/
 
 *.iml
 .DS_Store

@@ -1,0 +1,42 @@
+# Build artifacts
+target/
+!target/*.jar
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+logs/
+
+# Node modules (frontend)
+node_modules/
+package-lock.json
+
+# Environment
+.env
+.env.local
+
+# Test
+coverage/
+
+# Misc
+*.swp
+*.swo
+*~
+.tmp/

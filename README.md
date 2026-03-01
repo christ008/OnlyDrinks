@@ -1,80 +1,135 @@
-# My Application README
+# OnlyDrinks
 
-- [ ] TODO Replace or update this README with instructions relevant to your application
+OnlyDrinks is a portfolio-ready bar management app built with Java, Spring Boot, Vaadin, PostgreSQL, and Docker Compose.
+
+## Stack
+
+- Java 25
+- Spring Boot 4
+- Vaadin 25
+- PostgreSQL 18
+- Flyway
+- Docker Compose + nginx
+
+## Features
+
+- Customer management
+- Inventory management with archive/restore
+- Point of sale workflow
+- Sales history and analytics
+- Role-based access control (`USER`, `BARMAN`, `MANAGER`, `ADMIN`)
+- Audit fields on domain entities
+- HTTPS in production profile
 
 ## Project Structure
 
-This project has the following structure:
+- `src/main/java/uy/christian/base` shared UI and base entity infrastructure
+- `src/main/java/uy/christian/security` auth, roles, user management
+- `src/main/java/uy/christian/customers` customer feature
+- `src/main/java/uy/christian/inventory` inventory feature
+- `src/main/java/uy/christian/sales` POS and sales feature
+- `src/main/resources/db/migration` Flyway migrations
+- `docker-compose.yml` production stack (app + postgres + nginx)
+- `scripts/generate-certs.sh` local TLS cert generation
+- `scripts/postgres-ssl-entrypoint.sh` postgres TLS file permission bootstrap
 
-```
-src
-├── main/java
-│   └── [application package]
-│       ├── base
-│       │   └── ui
-│       │       ├── ViewToolbar.java
-│       │       └── MainLayout.java
-│       ├── examplefeature
-│       │   ├── ui
-│       │   │   └── TaskListView.java
-│       │   ├── Task.java
-│       │   ├── TaskRepository.java
-│       │   └── TaskService.java                
-│       └── Application.java     
-├── main/resources
-│   ├── META-INF
-│   │   └── resources
-│   │       └── styles.css
-│   └── application.properties 
-└── test/java
-    └── [application package]
-        └── examplefeature
-           └── TaskServiceTest.java                 
-```
+## Prerequisites
 
-The main entry point into the application is `Application.java`. This class contains the `main()` method that starts up 
-the Spring Boot application.
+- Java 25 JDK
+- Docker + Docker Compose
+- Maven (wrapper included)
 
-The project follows a *feature-based package structure*, organizing code by *functional units* rather than traditional 
-architectural layers. It includes two feature packages: `base` and `examplefeature`.
+## Local Development (dev profile)
 
-* The `base` package contains classes meant for reuse across different features, either through composition or 
-  inheritance. You can use them as-is, tweak them to your needs, or remove them.
-* The `examplefeature` package is an example feature package that demonstrates the structure. It represents a 
-  *self-contained unit of functionality*, including UI components, business logic, data access, and an integration test.
-  Once you create your own features, *you'll remove this package*.
-
-
-## Starting in Development Mode
-
-To start the application in development mode, import it into your IDE and run the `Application` class. 
-You can also start the application from the command line by running: 
+1. Start app:
 
 ```bash
-./mvnw
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-## Building for Production
+2. Open:
 
-To build the application in production mode, run:
+- App: `http://localhost:8080`
+- H2 Console: `http://localhost:8080/h2-console`
+
+Default demo users are seeded only in `dev` profile:
+
+- `user` / `user`
+- `admin` / `admin`
+- `barman` / `barman`
+
+## Docker Deployment (prod profile)
+
+1. Create environment file:
 
 ```bash
-./mvnw package
+cp .env.example .env
 ```
 
-To build a Docker image, run:
+2. Set required values in `.env`:
+
+```dotenv
+DB_PASSWORD=your_secure_password
+SSL_KEYSTORE_PASSWORD=changeme
+```
+
+3. Generate TLS certs:
 
 ```bash
-docker build -t my-application:latest .
+./scripts/generate-certs.sh
 ```
 
-If you use commercial components, pass the license key as a build secret:
+4. Build app image:
 
 ```bash
-docker build --secret id=proKey,src=$HOME/.vaadin/proKey .
+./mvnw spring-boot:build-image
 ```
 
-## Next Steps
+5. Start stack:
 
-The [Building Apps](https://vaadin.com/docs/v25/building-apps) guides contain hands-on advice for adding features to 
-your application.
+```bash
+docker compose up -d
+```
+
+6. Open:
+
+- HTTPS app: `https://localhost`
+- Postgres: `localhost:5432`
+
+## Health Checks
+
+- App container healthcheck uses Paketo THC (`/workspace/health-check`)
+- THC probes internal management HTTP endpoint at `http://localhost:8081/actuator/health`
+- Main user traffic stays on HTTPS app port (`8080` in container, proxied by nginx)
+
+This split is intentional because THC does not support HTTPS/basic-auth configuration flags.
+
+## Configuration Notes
+
+- Common settings are in `src/main/resources/application.yml`
+- Dev overrides are in `application-dev.yml`
+- Prod overrides are in `application-prod.yml`
+- Management probe port in prod can be overridden with:
+  - `MANAGEMENT_SERVER_PORT`
+  - `MANAGEMENT_SERVER_SSL_ENABLED`
+
+## Migrations
+
+Flyway migrations run automatically on startup.
+
+- `V1__Initial_Schema.sql`
+- `V2__Initial_Data.sql`
+
+## Repository Hygiene
+
+Local/runtime artifacts are ignored by default:
+
+- `.env`
+- `certs/`
+- `data/`
+- `target/`
+- `node_modules/`
+
+## Known Verification Constraint
+
+This project targets Java 25. Running Maven in environments with older JDK toolchains can fail compilation/tests due to unsupported `--release 25`.

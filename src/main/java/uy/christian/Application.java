@@ -10,10 +10,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import uy.christian.security.Role;
 import uy.christian.security.User;
 import uy.christian.security.UserRepository;
+import uy.christian.security.UserService;
 
 @SpringBootApplication
 @EnableJpaAuditing
@@ -30,37 +30,37 @@ import uy.christian.security.UserRepository;
 @StyleSheet("styles.css") // Your custom styles
 public class Application implements AppShellConfigurator {
 
-    public static void main(String[] args) {
+    private final UserService userService;
+
+    public Application(UserService userService) {
+        this.userService = userService;
+    }
+
+    static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
 
     @Bean
     @Profile("dev")
-    public CommandLineRunner loadData(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public CommandLineRunner loadData(UserRepository userRepository) {
         return _ -> {
-            createUser(userRepository, passwordEncoder, "user", "Christian", "user", Role.USER);
-            createUser(userRepository, passwordEncoder, "admin", "Admin", "admin", Role.ADMIN);
-            createUser(userRepository, passwordEncoder, "barman", "Barman", "barman", Role.BARMAN);
+            createUser(userRepository, "user", "Christian", "user", Role.USER);
+            createUser(userRepository, "admin", "Admin", "admin", Role.ADMIN);
+            createUser(userRepository, "barman", "Barman", "barman", Role.BARMAN);
         };
     }
 
-    private void createUser(UserRepository userRepository, PasswordEncoder passwordEncoder, String username, String name, String password, Role role) {
-        userRepository.findByUsername(username).ifPresentOrElse(
-                user -> {
-                    if (user.getRole() == null) {
-                        user.setRole(role);
-                        userRepository.save(user);
-                    }
-                },
-                () -> {
-                    User user = new User();
-                    user.setName(name);
-                    user.setUsername(username);
-                    user.setHashedPassword(passwordEncoder.encode(password));
-                    user.setRole(role);
-                    userRepository.save(user);
-                }
-        );
+    private void createUser(UserRepository userRepository, String username, String name, String password, Role role) {
+        if (userRepository.findByUsername(username).isPresent()) {
+            return;
+        }
+
+        User user = new User();
+        user.setName(name);
+        user.setUsername(username);
+        user.setHashedPassword(userService.encodePassword(password));
+        user.setRole(role);
+        userService.save(user);
     }
 
 }

@@ -26,7 +26,7 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public List<Order> findAll() {
-        return orderRepository.findAll();
+        return orderRepository.findAllWithDetails();
     }
 
     @Transactional
@@ -48,7 +48,7 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public Map<String, BigDecimal> getSalesByProduct() {
-        return orderRepository.findAll().stream()
+        return orderRepository.findAllWithDetails().stream()
                 .flatMap(order -> order.getItems().stream())
                 .collect(Collectors.groupingBy(
                         item -> Optional.ofNullable(item.getProduct())
@@ -60,8 +60,6 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public BigDecimal getTotalRevenue() {
-        return orderRepository.findAll().stream()
-                .map(Order::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return orderRepository.getTotalRevenue();
     }
 }

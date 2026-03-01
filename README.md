@@ -33,6 +33,89 @@ OnlyDrinks is a portfolio-ready bar management app built with Java, Spring Boot,
 - `scripts/generate-certs.sh` local TLS cert generation
 - `scripts/postgres-ssl-entrypoint.sh` postgres TLS file permission bootstrap
 
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph UI[Vaadin UI]
+      CustomerView
+      ProductView
+      POSView
+      SalesView
+      UserView
+    end
+
+    subgraph Services[Service Layer]
+      CustomerService
+      ProductService
+      POSService
+      OrderService
+      UserService
+    end
+
+    subgraph Data[Data Layer]
+      CustomerRepository
+      ProductRepository
+      OrderRepository
+      UserRepository
+    end
+
+    DB[(PostgreSQL / H2)]
+    SEC[Spring Security]
+
+    UI --> Services
+    Services --> Data
+    Data --> DB
+    UI --> SEC
+    Services --> SEC
+```
+
+## Runtime Topology
+
+```mermaid
+flowchart LR
+    Browser --> Nginx[nginx :443/:80]
+    Nginx --> App[onlydrinks app :8080 HTTPS]
+    App --> Postgres[(postgres :5432 TLS)]
+    THC[THC healthcheck] --> Mgmt[app management :8081 HTTP]
+```
+
+## Domain Model
+
+```mermaid
+classDiagram
+    class Customer {
+      +String name
+      +String email
+      +String phone
+      +String address
+    }
+    class Product {
+      +String name
+      +String description
+      +long stockQuantity
+      +BigDecimal price
+      +LocalDateTime deletedAt
+    }
+    class Order {
+      +LocalDateTime orderDate
+      +BigDecimal totalAmount
+    }
+    class OrderItem {
+      +long quantity
+      +BigDecimal unitPrice
+      +BigDecimal subtotal
+    }
+    class User {
+      +String username
+      +Role role
+    }
+
+    Order "1" o-- "*" OrderItem : contains
+    OrderItem "*" --> "1" Product : product
+    Order "*" --> "0..1" Customer : customer
+```
+
 ## Prerequisites
 
 - Java 25 JDK
@@ -99,17 +182,15 @@ docker compose up -d
 ## Health Checks
 
 - App container healthcheck uses Paketo THC (`/workspace/health-check`)
-- THC probes internal management HTTP endpoint at `http://localhost:8081/actuator/health`
+- THC probes `http://localhost:8081/actuator/health` inside the app container
 - Main user traffic stays on HTTPS app port (`8080` in container, proxied by nginx)
-
-This split is intentional because THC does not support HTTPS/basic-auth configuration flags.
 
 ## Configuration Notes
 
 - Common settings are in `src/main/resources/application.yml`
 - Dev overrides are in `application-dev.yml`
 - Prod overrides are in `application-prod.yml`
-- Management probe port in prod can be overridden with:
+- Management probe config can be overridden with:
   - `MANAGEMENT_SERVER_PORT`
   - `MANAGEMENT_SERVER_SSL_ENABLED`
 

@@ -21,11 +21,11 @@ public class OrderItem extends AbstractAuditEntity {
     private @Nullable Long id;
 
     @NotNull(message = "Order is required")
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Order order;
 
     @NotNull(message = "Product is required")
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Product product;
 
     @NotNull(message = "Quantity is required")

@@ -11,6 +11,7 @@ Usage: scripts/deploy.sh <command>
 
 Commands:
   init-secrets  Create/update .env with strong generated secrets where missing.
+  regen-certs   Force-regenerate TLS certificates and keystores from current .env secrets.
   validate      Validate required production configuration and secret strength.
   provision     Init secrets, validate config, generate certs, build image, deploy, and verify health.
   up            Validate config, build image, deploy, and verify health.
@@ -167,6 +168,27 @@ validate_env() {
       exit 1
     fi
   fi
+
+  check_keystore_password
+}
+
+check_keystore_password() {
+  local SSL_KEYSTORE_PASSWORD
+  SSL_KEYSTORE_PASSWORD="$(get_var SSL_KEYSTORE_PASSWORD)"
+  local keystore_path="$ROOT_DIR/certs/keystore.p12"
+  if [ ! -f "$keystore_path" ]; then
+    return 0
+  fi
+
+  if ! openssl pkcs12 -in "$keystore_path" -nokeys -passin "pass:${SSL_KEYSTORE_PASSWORD}" >/dev/null 2>&1; then
+    cat >&2 <<EOF
+Keystore password mismatch detected:
+- certs/keystore.p12 does not match SSL_KEYSTORE_PASSWORD in .env
+Fix by regenerating cert artifacts with current secret:
+  ./scripts/deploy.sh regen-certs
+EOF
+    exit 1
+  fi
 }
 
 build_image() {
@@ -222,6 +244,12 @@ provision() {
   (cd "$ROOT_DIR" && docker compose ps)
 }
 
+regen_certs() {
+  validate_env
+  (cd "$ROOT_DIR" && ./scripts/generate-certs.sh --force)
+  check_keystore_password
+}
+
 cmd="${1:-}"
 require_dependencies
 
@@ -231,6 +259,9 @@ case "$cmd" in
     ;;
   validate)
     validate_env
+    ;;
+  regen-certs)
+    regen_certs
     ;;
   provision)
     provision

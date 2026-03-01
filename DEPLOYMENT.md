@@ -100,6 +100,12 @@ Required security-sensitive values:
 ./scripts/deploy.sh provision
 ```
 
+If `SSL_KEYSTORE_PASSWORD` changed after cert generation:
+
+```bash
+./scripts/deploy.sh regen-certs
+```
+
 6. Check status/logs:
 
 ```bash
@@ -128,6 +134,7 @@ Access:
 - `MANAGEMENT_SERVER_PORT` (default `8081`)
 - `MANAGEMENT_SERVER_SSL_ENABLED` (default `false`)
 - `BOOTSTRAP_ADMIN_ENABLED`, `BOOTSTRAP_ADMIN_USERNAME`, `BOOTSTRAP_ADMIN_NAME`, `BOOTSTRAP_ADMIN_PASSWORD`
+- `JVM_GC_OPTS` (optional, default: `-XX:+UseZGC -XX:+ZGenerational`)
 
 ### Why Management Port 8081 Exists
 

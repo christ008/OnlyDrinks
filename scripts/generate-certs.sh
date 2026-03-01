@@ -4,6 +4,7 @@ set -e
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CERT_DIR="$ROOT_DIR/certs"
 ENV_FILE="$ROOT_DIR/.env"
+FORCE_REGENERATE="${1:-}"
 mkdir -p "$CERT_DIR"
 
 if [ -f "$ENV_FILE" ]; then
@@ -22,7 +23,12 @@ set_cert_permissions() {
     chmod 600 "$CERT_DIR"/db.key "$CERT_DIR"/app.key "$CERT_DIR"/ca.key
 }
 
-if [ -f "$CERT_DIR/ca.crt" ] && [ -f "$CERT_DIR/app.crt" ] && [ -f "$CERT_DIR/db.crt" ]; then
+if [ "$FORCE_REGENERATE" = "--force" ]; then
+    rm -f "$CERT_DIR"/ca.crt "$CERT_DIR"/ca.key "$CERT_DIR"/app.crt "$CERT_DIR"/app.key \
+          "$CERT_DIR"/db.crt "$CERT_DIR"/db.key "$CERT_DIR"/keystore.p12 "$CERT_DIR"/truststore.p12
+fi
+
+if [ -f "$CERT_DIR/ca.crt" ] && [ -f "$CERT_DIR/app.crt" ] && [ -f "$CERT_DIR/db.crt" ] && [ -f "$CERT_DIR/keystore.p12" ]; then
     echo "Certificates already exist in $CERT_DIR. Skipping generation."
     set_cert_permissions
     echo "Certificate permissions normalized in $CERT_DIR"

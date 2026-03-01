@@ -18,9 +18,10 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Validator;
 import org.jspecify.annotations.Nullable;
+import org.springframework.context.MessageSource;
 import uy.christian.base.ui.FormValidation;
+import uy.christian.base.ui.MessageSupport;
 import uy.christian.base.ui.NotificationUtils;
-import uy.christian.base.ui.UiMessages;
 import uy.christian.customers.Customer;
 import uy.christian.customers.CustomerService;
 
@@ -30,11 +31,11 @@ import java.util.Optional;
 @PageTitle("Customers | OnlyDrinks")
 @Menu(order = 2, icon = "vaadin:users", title = "Customers")
 @RolesAllowed("BARMAN")
-public class CustomerView extends VerticalLayout {
+public class CustomerView extends VerticalLayout implements MessageSupport {
 
-    private final transient CustomerService customerService;
+    private final CustomerService customerService;
     private final transient Validator validator;
-    private final transient UiMessages uiMessages;
+    private final transient MessageSource messageSource;
     private final Grid<Customer> grid = new Grid<>(Customer.class, false);
 
     private final TextField name = new TextField();
@@ -47,21 +48,21 @@ public class CustomerView extends VerticalLayout {
     private final VerticalLayout form;
     private transient @Nullable Customer selectedCustomer;
 
-    public CustomerView(CustomerService customerService, Validator validator, UiMessages uiMessages) {
+    public CustomerView(CustomerService customerService, Validator validator, MessageSource messageSource) {
         this.customerService = customerService;
         this.validator = validator;
-        this.uiMessages = uiMessages;
+        this.messageSource = messageSource;
         setSizeFull();
 
-        name.setLabel(uiMessages.get("customers.form.name"));
-        email.setLabel(uiMessages.get("customers.form.email"));
-        phone.setLabel(uiMessages.get("customers.form.phone"));
-        address.setLabel(uiMessages.get("customers.form.address"));
+        name.setLabel(msg("customers.form.name"));
+        email.setLabel(msg("customers.form.email"));
+        phone.setLabel(msg("customers.form.phone"));
+        address.setLabel(msg("customers.form.address"));
 
-        add(new H2(uiMessages.get("customers.title")));
+        add(new H2(msg("customers.title")));
 
         configureGrid();
-        Button addCustomerButton = new Button(uiMessages.get("customers.action.new"), e -> newCustomer());
+        Button addCustomerButton = new Button(msg("customers.action.new"), e -> newCustomer());
         addCustomerButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         this.form = createForm();
@@ -76,11 +77,16 @@ public class CustomerView extends VerticalLayout {
         editCustomer(null);
     }
 
+    @Override
+    public MessageSource getMessageSource() {
+        return messageSource;
+    }
+
     private void configureGrid() {
-        grid.addColumn(Customer::getName).setHeader(uiMessages.get("customers.form.name"));
-        grid.addColumn(Customer::getEmail).setHeader(uiMessages.get("customers.form.email"));
-        grid.addColumn(Customer::getPhone).setHeader(uiMessages.get("customers.form.phone"));
-        grid.addColumn(Customer::getAddress).setHeader(uiMessages.get("customers.form.address"));
+        grid.addColumn(Customer::getName).setHeader(msg("customers.form.name"));
+        grid.addColumn(Customer::getEmail).setHeader(msg("customers.form.email"));
+        grid.addColumn(Customer::getPhone).setHeader(msg("customers.form.phone"));
+        grid.addColumn(Customer::getAddress).setHeader(msg("customers.form.address"));
         grid.setSizeFull();
 
         grid.asSingleSelect().addValueChangeListener(event -> {
@@ -96,13 +102,13 @@ public class CustomerView extends VerticalLayout {
         statusLabel.addClassNames(LumoUtility.TextColor.ERROR, LumoUtility.FontSize.SMALL);
         FormLayout formLayout = new FormLayout(name, email, phone, address);
         
-        Button save = new Button(uiMessages.get("common.action.save"), _ -> saveCustomer());
+        Button save = new Button(msg("common.action.save"), _ -> saveCustomer());
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
-        Button delete = new Button(uiMessages.get("common.action.delete"), _ -> deleteCustomer());
+        Button delete = new Button(msg("common.action.delete"), _ -> deleteCustomer());
         delete.addThemeVariants(ButtonVariant.LUMO_ERROR);
 
-        Button cancel = new Button(uiMessages.get("common.action.cancel"), _ -> editCustomer(null));
+        Button cancel = new Button(msg("common.action.cancel"), _ -> editCustomer(null));
 
         HorizontalLayout buttons = new HorizontalLayout(save, delete, cancel);
         
@@ -125,7 +131,7 @@ public class CustomerView extends VerticalLayout {
             selectedCustomer = null;
             form.setEnabled(false);
             form.addClassNames("opacity-50");
-            formTitle.setText(uiMessages.get("customers.form.select"));
+            formTitle.setText(msg("customers.form.select"));
             grid.asSingleSelect().clear();
             clearFormFields();
         } else {
@@ -133,8 +139,8 @@ public class CustomerView extends VerticalLayout {
             form.setEnabled(true);
             form.removeClassNames("opacity-50");
             formTitle.setText(customer.getId() == null
-                    ? uiMessages.get("customers.form.new")
-                    : uiMessages.get("customers.form.edit"));
+                    ? msg("customers.form.new")
+                    : msg("customers.form.edit"));
             name.setValue(customer.getName());
             email.setValue(valueOrEmpty(customer.getEmail()));
             phone.setValue(valueOrEmpty(customer.getPhone()));
@@ -171,17 +177,17 @@ public class CustomerView extends VerticalLayout {
         customerService.save(selectedCustomer);
         refreshGrid();
         editCustomer(null);
-        NotificationUtils.showSuccess(uiMessages.get("customers.notify.saved"));
+        NotificationUtils.showSuccess(msg("customers.notify.saved"));
     }
 
     private void deleteCustomer() {
         if (selectedCustomer != null && selectedCustomer.getId() != null) {
             ConfirmDialog dialog = new ConfirmDialog();
-            dialog.setHeader(uiMessages.get("customers.delete.header"));
-            dialog.setText(uiMessages.get("customers.delete.text"));
+            dialog.setHeader(msg("customers.delete.header"));
+            dialog.setText(msg("customers.delete.text"));
 
             dialog.setCancelable(true);
-            dialog.setConfirmText(uiMessages.get("common.action.delete"));
+            dialog.setConfirmText(msg("common.action.delete"));
             dialog.setConfirmButtonTheme(ButtonVariant.LUMO_ERROR.getVariantName());
 
             dialog.addConfirmListener(e -> {
@@ -189,7 +195,7 @@ public class CustomerView extends VerticalLayout {
                     customerService.delete(selectedCustomer.getId());
                     refreshGrid();
                     editCustomer(null);
-                    NotificationUtils.showSuccess(uiMessages.get("customers.notify.deleted"));
+                    NotificationUtils.showSuccess(msg("customers.notify.deleted"));
                 }
             });
             dialog.open();
@@ -211,4 +217,5 @@ public class CustomerView extends VerticalLayout {
         phone.clear();
         address.clear();
     }
+
 }

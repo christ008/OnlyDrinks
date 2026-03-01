@@ -20,9 +20,10 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Validator;
 import org.jspecify.annotations.Nullable;
+import org.springframework.context.MessageSource;
 import uy.christian.base.ui.FormValidation;
+import uy.christian.base.ui.MessageSupport;
 import uy.christian.base.ui.NotificationUtils;
-import uy.christian.base.ui.UiMessages;
 import uy.christian.inventory.Product;
 import uy.christian.inventory.ProductService;
 
@@ -32,11 +33,11 @@ import java.util.Optional;
 @PageTitle("Inventory | OnlyDrinks")
 @Menu(order = 1, icon = "vaadin:package", title = "Inventory")
 @RolesAllowed("MANAGER")
-public class ProductView extends VerticalLayout {
+public class ProductView extends VerticalLayout implements MessageSupport {
 
     private final transient ProductService productService;
     private final transient Validator validator;
-    private final transient UiMessages uiMessages;
+    private final transient MessageSource messageSource;
     private final Grid<Product> grid = new Grid<>(Product.class, false);
 
     private final TextField name = new TextField();
@@ -49,21 +50,21 @@ public class ProductView extends VerticalLayout {
     private final VerticalLayout form;
     private transient @Nullable Product selectedProduct;
 
-    public ProductView(ProductService productService, Validator validator, UiMessages uiMessages) {
+    public ProductView(ProductService productService, Validator validator, MessageSource messageSource) {
         this.productService = productService;
         this.validator = validator;
-        this.uiMessages = uiMessages;
+        this.messageSource = messageSource;
         setSizeFull();
 
-        name.setLabel(uiMessages.get("inventory.form.name"));
-        description.setLabel(uiMessages.get("inventory.form.description"));
-        stockQuantity.setLabel(uiMessages.get("inventory.form.stock"));
-        price.setLabel(uiMessages.get("inventory.form.price"));
+        name.setLabel(msg("inventory.form.name"));
+        description.setLabel(msg("inventory.form.description"));
+        stockQuantity.setLabel(msg("inventory.form.stock"));
+        price.setLabel(msg("inventory.form.price"));
 
-        add(new H2(uiMessages.get("inventory.title")));
+        add(new H2(msg("inventory.title")));
 
         configureGrid();
-        Button addProductButton = new Button(uiMessages.get("inventory.action.new"), e -> newProduct());
+        Button addProductButton = new Button(msg("inventory.action.new"), e -> newProduct());
         addProductButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         this.form = createForm();
@@ -78,11 +79,16 @@ public class ProductView extends VerticalLayout {
         editProduct(null);
     }
 
+    @Override
+    public MessageSource getMessageSource() {
+        return messageSource;
+    }
+
     private void configureGrid() {
-        grid.addColumn(Product::getName).setHeader(uiMessages.get("inventory.form.name"));
-        grid.addColumn(Product::getDescription).setHeader(uiMessages.get("inventory.form.description"));
-        grid.addColumn(Product::getStockQuantity).setHeader(uiMessages.get("inventory.form.stock"));
-        grid.addColumn(Product::getPrice).setHeader(uiMessages.get("inventory.form.price"));
+        grid.addColumn(Product::getName).setHeader(msg("inventory.form.name"));
+        grid.addColumn(Product::getDescription).setHeader(msg("inventory.form.description"));
+        grid.addColumn(Product::getStockQuantity).setHeader(msg("inventory.form.stock"));
+        grid.addColumn(Product::getPrice).setHeader(msg("inventory.form.price"));
         grid.setSizeFull();
 
         grid.asSingleSelect().addValueChangeListener(event -> {
@@ -98,13 +104,13 @@ public class ProductView extends VerticalLayout {
         statusLabel.addClassNames(LumoUtility.TextColor.ERROR, LumoUtility.FontSize.SMALL);
         FormLayout formLayout = new FormLayout(name, description, stockQuantity, price);
         
-        Button save = new Button(uiMessages.get("common.action.save"), e -> saveProduct());
+        Button save = new Button(msg("common.action.save"), e -> saveProduct());
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
-        Button delete = new Button(uiMessages.get("common.action.delete"), e -> deleteProduct());
+        Button delete = new Button(msg("common.action.delete"), e -> deleteProduct());
         delete.addThemeVariants(ButtonVariant.LUMO_ERROR);
 
-        Button cancel = new Button(uiMessages.get("common.action.cancel"), e -> editProduct(null));
+        Button cancel = new Button(msg("common.action.cancel"), e -> editProduct(null));
 
         HorizontalLayout buttons = new HorizontalLayout(save, delete, cancel);
         
@@ -127,7 +133,7 @@ public class ProductView extends VerticalLayout {
             selectedProduct = null;
             form.setEnabled(false);
             form.addClassNames("opacity-50");
-            formTitle.setText(uiMessages.get("inventory.form.select"));
+            formTitle.setText(msg("inventory.form.select"));
             grid.asSingleSelect().clear();
             clearFormFields();
         } else {
@@ -135,8 +141,8 @@ public class ProductView extends VerticalLayout {
             form.setEnabled(true);
             form.removeClassNames("opacity-50");
             formTitle.setText(product.getId() == null
-                    ? uiMessages.get("inventory.form.new")
-                    : uiMessages.get("inventory.form.edit"));
+                    ? msg("inventory.form.new")
+                    : msg("inventory.form.edit"));
             name.setValue(product.getName());
             description.setValue(valueOrEmpty(product.getDescription()));
             stockQuantity.setValue(Math.toIntExact(product.getStockQuantity()));
@@ -174,17 +180,17 @@ public class ProductView extends VerticalLayout {
         productService.save(selectedProduct);
         refreshGrid();
         editProduct(null);
-        NotificationUtils.showSuccess(uiMessages.get("inventory.notify.saved"));
+        NotificationUtils.showSuccess(msg("inventory.notify.saved"));
     }
 
     private void deleteProduct() {
         if (selectedProduct != null && selectedProduct.getId() != null) {
             ConfirmDialog dialog = new ConfirmDialog();
-            dialog.setHeader(uiMessages.get("inventory.archive.header"));
-            dialog.setText(uiMessages.get("inventory.archive.text"));
+            dialog.setHeader(msg("inventory.archive.header"));
+            dialog.setText(msg("inventory.archive.text"));
 
             dialog.setCancelable(true);
-            dialog.setConfirmText(uiMessages.get("inventory.action.archive"));
+            dialog.setConfirmText(msg("inventory.action.archive"));
             dialog.setConfirmButtonTheme(ButtonVariant.LUMO_ERROR.getVariantName());
 
             dialog.addConfirmListener(e -> {
@@ -192,7 +198,7 @@ public class ProductView extends VerticalLayout {
                     productService.archive(selectedProduct.getId());
                     refreshGrid();
                     editProduct(null);
-                    NotificationUtils.showSuccess(uiMessages.get("inventory.notify.archived"));
+                    NotificationUtils.showSuccess(msg("inventory.notify.archived"));
                 }
             });
             dialog.open();
@@ -214,4 +220,5 @@ public class ProductView extends VerticalLayout {
         stockQuantity.clear();
         price.clear();
     }
+
 }

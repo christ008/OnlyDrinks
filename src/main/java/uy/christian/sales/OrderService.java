@@ -3,6 +3,8 @@ package uy.christian.sales;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -19,17 +21,21 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional
 @Validated
+@Slf4j
 public class OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('MANAGER')")
     public List<Order> findAll() {
+        log.debug("Listing all orders with details");
         return orderRepository.findAllWithDetails();
     }
 
     @Transactional
+    @PreAuthorize("hasRole('BARMAN')")
     public Order placeOrder(@Valid @NotNull Order order) {
         order.setOrderDate(LocalDateTime.now());
         BigDecimal total = BigDecimal.ZERO;
@@ -43,11 +49,15 @@ public class OrderService {
             productRepository.save(product);
         }
         order.setTotalAmount(total);
-        return orderRepository.save(order);
+        Order saved = orderRepository.save(order);
+        log.info("Order persisted id={} items={} total={}", saved.getId(), saved.getItems().size(), saved.getTotalAmount());
+        return saved;
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('MANAGER')")
     public Map<String, BigDecimal> getSalesByProduct() {
+        log.debug("Calculating sales by product");
         return orderRepository.findAllWithDetails().stream()
                 .flatMap(order -> order.getItems().stream())
                 .collect(Collectors.groupingBy(
@@ -59,7 +69,9 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('MANAGER')")
     public BigDecimal getTotalRevenue() {
+        log.debug("Calculating total revenue");
         return orderRepository.getTotalRevenue();
     }
 }

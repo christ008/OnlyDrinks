@@ -11,7 +11,7 @@ import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import jakarta.annotation.security.PermitAll;
+import jakarta.annotation.security.RolesAllowed;
 import uy.christian.sales.Order;
 import uy.christian.sales.OrderItem;
 import uy.christian.sales.OrderService;
@@ -23,7 +23,7 @@ import java.time.format.DateTimeFormatter;
 @Route("sales")
 @PageTitle("Sales | OnlyDrinks")
 @Menu(order = 3, icon = "vaadin:chart", title = "Sales")
-@PermitAll
+@RolesAllowed("MANAGER")
 public class SalesView extends VerticalLayout {
 
     private final transient OrderService orderService;

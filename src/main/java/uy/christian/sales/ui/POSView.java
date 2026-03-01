@@ -16,9 +16,10 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Validator;
 import org.jspecify.annotations.Nullable;
+import org.springframework.context.MessageSource;
 import uy.christian.base.ui.FormValidation;
+import uy.christian.base.ui.MessageSupport;
 import uy.christian.base.ui.NotificationUtils;
-import uy.christian.base.ui.UiMessages;
 import uy.christian.customers.Customer;
 import uy.christian.customers.CustomerService;
 import uy.christian.inventory.Product;
@@ -34,13 +35,13 @@ import java.util.Optional;
 @PageTitle("POS | OnlyDrinks")
 @Menu(order = 0, icon = "vaadin:cart", title = "POS")
 @RolesAllowed("BARMAN")
-public class POSView extends VerticalLayout {
+public class POSView extends VerticalLayout implements MessageSupport {
 
     private final transient POSService posService;
     private final transient ProductService productService;
     private final transient CustomerService customerService;
     private final transient Validator validator;
-    private final transient UiMessages uiMessages;
+    private final transient MessageSource messageSource;
 
     private final ComboBox<Customer> customerComboBox = new ComboBox<>();
     private final ComboBox<Product> product = new ComboBox<>();
@@ -52,22 +53,22 @@ public class POSView extends VerticalLayout {
 
     private transient @Nullable Order currentOrder;
 
-    public POSView(POSService posService, ProductService productService, CustomerService customerService, Validator validator, UiMessages uiMessages) {
+    public POSView(POSService posService, ProductService productService, CustomerService customerService, Validator validator, MessageSource messageSource) {
         this.posService = posService;
         this.productService = productService;
         this.customerService = customerService;
         this.validator = validator;
-        this.uiMessages = uiMessages;
+        this.messageSource = messageSource;
 
         setSizeFull();
-        customerComboBox.setLabel(uiMessages.get("pos.form.customer"));
-        product.setLabel(uiMessages.get("pos.form.product"));
-        quantity.setLabel(uiMessages.get("pos.form.quantity"));
-        placeOrderButton.setText(uiMessages.get("pos.action.place"));
+        customerComboBox.setLabel(msg("pos.form.customer"));
+        product.setLabel(msg("pos.form.product"));
+        quantity.setLabel(msg("pos.form.quantity"));
+        placeOrderButton.setText(msg("pos.action.place"));
         placeOrderButton.addClickListener(e -> placeOrder());
-        totalSpan.setText(uiMessages.get("pos.total", "0.00"));
+        totalSpan.setText(msg("pos.total", "0.00"));
 
-        add(new H2(uiMessages.get("pos.title")));
+        add(new H2(msg("pos.title")));
 
         configureCustomerSelector();
         configureProductSelector();
@@ -76,7 +77,7 @@ public class POSView extends VerticalLayout {
         HorizontalLayout selectors = new HorizontalLayout(customerComboBox, product, quantity);
         selectors.setAlignItems(Alignment.BASELINE);
 
-        Button addButton = new Button(uiMessages.get("pos.action.add"), e -> addToOrder());
+        Button addButton = new Button(msg("pos.action.add"), e -> addToOrder());
         addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         selectors.add(addButton);
 
@@ -97,10 +98,15 @@ public class POSView extends VerticalLayout {
         resetOrder();
     }
 
+    @Override
+    public MessageSource getMessageSource() {
+        return messageSource;
+    }
+
     private void configureCustomerSelector() {
         customerComboBox.setItems(customerService.findAll());
         customerComboBox.setItemLabelGenerator(Customer::getName);
-        customerComboBox.setPlaceholder(uiMessages.get("pos.customer.anonymous"));
+        customerComboBox.setPlaceholder(msg("pos.customer.anonymous"));
         customerComboBox.setClearButtonVisible(true);
     }
 
@@ -110,12 +116,12 @@ public class POSView extends VerticalLayout {
     }
 
     private void configureGrid() {
-        grid.addColumn(item -> item.getProduct().getName()).setHeader(uiMessages.get("pos.form.product"));
-        grid.addColumn(OrderItem::getQuantity).setHeader(uiMessages.get("pos.form.quantity"));
-        grid.addColumn(item -> String.format("$%.2f", item.getUnitPrice())).setHeader(uiMessages.get("pos.grid.unitPrice"));
-        grid.addColumn(item -> String.format("$%.2f", item.getSubtotal())).setHeader(uiMessages.get("pos.grid.subtotal"));
+        grid.addColumn(item -> item.getProduct().getName()).setHeader(msg("pos.form.product"));
+        grid.addColumn(OrderItem::getQuantity).setHeader(msg("pos.form.quantity"));
+        grid.addColumn(item -> String.format("$%.2f", item.getUnitPrice())).setHeader(msg("pos.grid.unitPrice"));
+        grid.addColumn(item -> String.format("$%.2f", item.getSubtotal())).setHeader(msg("pos.grid.subtotal"));
         grid.addComponentColumn(item -> {
-            Button remove = new Button(uiMessages.get("common.action.remove"), e -> {
+            Button remove = new Button(msg("common.action.remove"), e -> {
                 if (currentOrder != null) {
                     posService.removeItemFromOrder(currentOrder, item);
                     refreshGrid();
@@ -123,7 +129,7 @@ public class POSView extends VerticalLayout {
             });
             remove.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
             return remove;
-        }).setHeader(uiMessages.get("common.grid.actions"));
+        }).setHeader(msg("common.grid.actions"));
     }
 
     private void addToOrder() {
@@ -132,7 +138,7 @@ public class POSView extends VerticalLayout {
         }
         Order order = currentOrder;
         if (order == null) {
-            NotificationUtils.showError(uiMessages.get("pos.error.createOrder"));
+            NotificationUtils.showError(msg("pos.error.createOrder"));
             return;
         }
 
@@ -161,7 +167,7 @@ public class POSView extends VerticalLayout {
             return;
         }
         grid.setItems(new ArrayList<>(currentOrder.getItems()));
-        totalSpan.setText(uiMessages.get("pos.total", String.format("%.2f", currentOrder.getTotalAmount())));
+        totalSpan.setText(msg("pos.total", String.format("%.2f", currentOrder.getTotalAmount())));
         placeOrderButton.setEnabled(!currentOrder.getItems().isEmpty());
     }
 
@@ -172,7 +178,7 @@ public class POSView extends VerticalLayout {
         try {
             currentOrder.setCustomer(customerComboBox.getValue());
             posService.placeOrder(currentOrder);
-            NotificationUtils.showSuccess(uiMessages.get("pos.notify.placed"));
+            NotificationUtils.showSuccess(msg("pos.notify.placed"));
             resetOrder();
         } catch (IllegalStateException e) {
             NotificationUtils.showError(e.getMessage());
@@ -190,4 +196,5 @@ public class POSView extends VerticalLayout {
         product.clear();
         quantity.setValue(1);
     }
+
 }

@@ -22,10 +22,11 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Validator;
 import org.jspecify.annotations.Nullable;
+import org.springframework.context.MessageSource;
 import org.springframework.security.core.userdetails.UserDetails;
 import uy.christian.base.ui.FormValidation;
+import uy.christian.base.ui.MessageSupport;
 import uy.christian.base.ui.NotificationUtils;
-import uy.christian.base.ui.UiMessages;
 import uy.christian.security.Role;
 import uy.christian.security.User;
 import uy.christian.security.UserService;
@@ -36,12 +37,12 @@ import java.util.Optional;
 @PageTitle("Users | OnlyDrinks")
 @Menu(order = 4, icon = "vaadin:user-card", title = "User Management")
 @RolesAllowed("ADMIN")
-public class UserView extends VerticalLayout {
+public class UserView extends VerticalLayout implements MessageSupport {
 
     private final transient UserService userService;
     private final transient AuthenticationContext authenticationContext;
     private final transient Validator validator;
-    private final transient UiMessages uiMessages;
+    private final transient MessageSource messageSource;
     private final Grid<User> grid = new Grid<>(User.class, false);
 
     private final TextField username = new TextField();
@@ -54,24 +55,24 @@ public class UserView extends VerticalLayout {
     private final VerticalLayout form;
     private @Nullable User selectedUser;
 
-    public UserView(UserService userService, AuthenticationContext authenticationContext, Validator validator, UiMessages uiMessages) {
+    public UserView(UserService userService, AuthenticationContext authenticationContext, Validator validator, MessageSource messageSource) {
         this.userService = userService;
         this.authenticationContext = authenticationContext;
         this.validator = validator;
-        this.uiMessages = uiMessages;
+        this.messageSource = messageSource;
         setSizeFull();
 
-        username.setLabel(uiMessages.get("users.form.username"));
-        name.setLabel(uiMessages.get("users.form.name"));
-        password.setLabel(uiMessages.get("users.form.password"));
-        role.setLabel(uiMessages.get("users.form.role"));
+        username.setLabel(msg("users.form.username"));
+        name.setLabel(msg("users.form.name"));
+        password.setLabel(msg("users.form.password"));
+        role.setLabel(msg("users.form.role"));
 
-        add(new H2(uiMessages.get("users.title")));
+        add(new H2(msg("users.title")));
 
         configureGrid();
         configureForm();
 
-        Button addUserButton = new Button(uiMessages.get("users.action.new"), e -> newUser());
+        Button addUserButton = new Button(msg("users.action.new"), e -> newUser());
         addUserButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         this.form = createForm();
@@ -86,10 +87,15 @@ public class UserView extends VerticalLayout {
         editUser(null);
     }
 
+    @Override
+    public MessageSource getMessageSource() {
+        return messageSource;
+    }
+
     private void configureGrid() {
-        grid.addColumn(User::getUsername).setHeader(uiMessages.get("users.form.username"));
-        grid.addColumn(User::getName).setHeader(uiMessages.get("users.form.name"));
-        grid.addColumn(user -> user.getRole().name()).setHeader(uiMessages.get("users.form.role"));
+        grid.addColumn(User::getUsername).setHeader(msg("users.form.username"));
+        grid.addColumn(User::getName).setHeader(msg("users.form.name"));
+        grid.addColumn(user -> user.getRole().name()).setHeader(msg("users.form.role"));
         grid.setSizeFull();
 
         grid.asSingleSelect().addValueChangeListener(event -> {
@@ -102,14 +108,14 @@ public class UserView extends VerticalLayout {
     private void configureForm() {
         role.setItems(Role.values());
         role.setItemLabelGenerator(r -> switch (r) {
-            case ADMIN -> uiMessages.get("users.role.admin");
-            case MANAGER -> uiMessages.get("users.role.manager");
-            case BARMAN -> uiMessages.get("users.role.barman");
-            case USER -> uiMessages.get("users.role.user");
+            case ADMIN -> msg("users.role.admin");
+            case MANAGER -> msg("users.role.manager");
+            case BARMAN -> msg("users.role.barman");
+            case USER -> msg("users.role.user");
         });
 
-        role.setHelperText(uiMessages.get("users.role.helper"));
-        role.setTooltipText(uiMessages.get("users.role.tooltip"));
+        role.setHelperText(msg("users.role.helper"));
+        role.setTooltipText(msg("users.role.tooltip"));
         role.getTooltip().setPosition(Tooltip.TooltipPosition.TOP);
     }
 
@@ -119,13 +125,13 @@ public class UserView extends VerticalLayout {
         statusLabel.addClassNames(LumoUtility.TextColor.ERROR, LumoUtility.FontSize.SMALL);
         FormLayout formLayout = new FormLayout(username, name, password, role);
         
-        Button save = new Button(uiMessages.get("common.action.save"), e -> saveUser());
+        Button save = new Button(msg("common.action.save"), e -> saveUser());
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
-        Button delete = new Button(uiMessages.get("common.action.delete"), e -> deleteUser());
+        Button delete = new Button(msg("common.action.delete"), e -> deleteUser());
         delete.addThemeVariants(ButtonVariant.LUMO_ERROR);
 
-        Button cancel = new Button(uiMessages.get("common.action.cancel"), e -> editUser(null));
+        Button cancel = new Button(msg("common.action.cancel"), e -> editUser(null));
 
         HorizontalLayout buttons = new HorizontalLayout(save, delete, cancel);
         
@@ -148,9 +154,9 @@ public class UserView extends VerticalLayout {
             selectedUser = null;
             form.setEnabled(false);
             form.addClassNames("opacity-50");
-            formTitle.setText(uiMessages.get("users.form.select"));
+            formTitle.setText(msg("users.form.select"));
             grid.asSingleSelect().clear();
-            password.setHelperText(uiMessages.get("users.password.helper.none"));
+            password.setHelperText(msg("users.password.helper.none"));
             password.setRequiredIndicatorVisible(false);
             username.clear();
             name.clear();
@@ -160,10 +166,10 @@ public class UserView extends VerticalLayout {
             form.setEnabled(true);
             form.removeClassNames("opacity-50");
             boolean isNew = user.getId() == null;
-            formTitle.setText(isNew ? uiMessages.get("users.form.new") : uiMessages.get("users.form.edit"));
+            formTitle.setText(isNew ? msg("users.form.new") : msg("users.form.edit"));
             password.setHelperText(isNew
-                    ? uiMessages.get("users.password.helper.new")
-                    : uiMessages.get("users.password.helper.edit"));
+                    ? msg("users.password.helper.new")
+                    : msg("users.password.helper.edit"));
             password.setRequiredIndicatorVisible(isNew);
             username.setValue(user.getUsername());
             name.setValue(user.getName());
@@ -198,7 +204,7 @@ public class UserView extends VerticalLayout {
                 .orElse(false);
 
         if (isCurrentUser && formData.role() != Role.ADMIN) {
-            NotificationUtils.showError(uiMessages.get("users.error.self.demote"));
+            NotificationUtils.showError(msg("users.error.self.demote"));
             return;
         }
 
@@ -209,14 +215,14 @@ public class UserView extends VerticalLayout {
         if (formData.password() != null) {
             selectedUser.setHashedPassword(userService.encodePassword(formData.password()));
         } else if (selectedUser.getId() == null) {
-            NotificationUtils.showError(uiMessages.get("users.error.password.required"));
+            NotificationUtils.showError(msg("users.error.password.required"));
             return;
         }
 
         userService.save(selectedUser);
         refreshGrid();
         editUser(null);
-        NotificationUtils.showSuccess(uiMessages.get("users.notify.saved"));
+        NotificationUtils.showSuccess(msg("users.notify.saved"));
     }
 
     private void deleteUser() {
@@ -226,7 +232,7 @@ public class UserView extends VerticalLayout {
                     .orElse(false);
 
             if (isCurrentUser) {
-                NotificationUtils.showError(uiMessages.get("users.error.self.delete"));
+                NotificationUtils.showError(msg("users.error.self.delete"));
                 return;
             }
 
@@ -237,11 +243,11 @@ public class UserView extends VerticalLayout {
 
     private ConfirmDialog getConfirmDialog() {
         ConfirmDialog dialog = new ConfirmDialog();
-        dialog.setHeader(uiMessages.get("users.delete.header"));
-        dialog.setText(uiMessages.get("users.delete.text"));
+        dialog.setHeader(msg("users.delete.header"));
+        dialog.setText(msg("users.delete.text"));
 
         dialog.setCancelable(true);
-        dialog.setConfirmText(uiMessages.get("common.action.delete"));
+        dialog.setConfirmText(msg("common.action.delete"));
         dialog.setConfirmButtonTheme(ButtonVariant.LUMO_ERROR.getVariantName());
 
         dialog.addConfirmListener(e -> {
@@ -249,7 +255,7 @@ public class UserView extends VerticalLayout {
                 userService.delete(selectedUser.getId());
                 refreshGrid();
                 editUser(null);
-                NotificationUtils.showSuccess(uiMessages.get("users.notify.deleted"));
+                NotificationUtils.showSuccess(msg("users.notify.deleted"));
             }
         });
         return dialog;
@@ -259,4 +265,5 @@ public class UserView extends VerticalLayout {
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
     }
+
 }

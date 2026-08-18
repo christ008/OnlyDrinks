@@ -33,9 +33,11 @@ public class OrderItem extends AbstractAuditEntity {
     private long quantity = 1;
     
     @NotNull(message = "Unit price is required")
+    @Column(precision = 12, scale = 2)
     private BigDecimal unitPrice = BigDecimal.ZERO;
 
     @NotNull(message = "Subtotal is required")
+    @Column(precision = 12, scale = 2)
     private BigDecimal subtotal = BigDecimal.ZERO;
 
     @Override

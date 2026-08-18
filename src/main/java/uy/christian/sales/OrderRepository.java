@@ -20,4 +20,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("select coalesce(sum(o.totalAmount), 0) from Order o")
     BigDecimal getTotalRevenue();
+
+    @Query("""
+            select coalesce(p.name, 'Unknown') as productName,
+                   sum(i.subtotal) as totalSales
+            from OrderItem i
+            left join i.product p
+            group by p.name
+            order by sum(i.subtotal) desc
+            """)
+    List<ProductSalesProjection> findSalesByProduct();
 }

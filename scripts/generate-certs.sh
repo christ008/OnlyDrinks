@@ -11,7 +11,7 @@ if [ -f "$ENV_FILE" ]; then
     KEYSTORE_PASSWORD="$(awk -F= '$0 ~ "^[[:space:]]*SSL_KEYSTORE_PASSWORD=" {print substr($0, index($0, "=")+1)}' "$ENV_FILE" | tail -n1)"
 fi
 
-KEYSTORE_PASSWORD="${SSL_KEYSTORE_PASSWORD:-${KEYSTORE_PASSWORD:-}}"
+KEYSTORE_PASSWORD="${KEYSTORE_PASSWORD:-${SSL_KEYSTORE_PASSWORD:-}}"
 if [ -z "$KEYSTORE_PASSWORD" ] || [ "$KEYSTORE_PASSWORD" = "changeme" ]; then
     echo "SSL_KEYSTORE_PASSWORD must be set to a non-default value (in .env or environment)." >&2
     exit 1
@@ -105,7 +105,7 @@ openssl pkcs12 -export -nokeys -in "$CERT_DIR/ca.crt" \
     -out "$CERT_DIR/truststore.p12" -name caroot -password pass:"$KEYSTORE_PASSWORD"
 
 # Cleanup CSRs and configs
-rm "$CERT_DIR"/*.csr "$CERT_DIR"/*.conf "$CERT_DIR"/*.srl
+rm -f "$CERT_DIR"/*.csr "$CERT_DIR"/*.conf "$CERT_DIR"/*.srl
 
 # Important for Postgres: the key must not be world-readable
 set_cert_permissions

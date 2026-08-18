@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -51,8 +52,11 @@ public class ProductService {
 
     @PreAuthorize("hasRole('MANAGER')")
     public void archive(@NotNull Long id) {
-        productRepository.deleteById(id);
-        log.info("Product archived id={}", id);
+        productRepository.findById(id).ifPresent(product -> {
+            product.setDeletedAt(LocalDateTime.now());
+            productRepository.save(product);
+            log.info("Product archived id={}", id);
+        });
     }
 
     @PreAuthorize("hasRole('MANAGER')")
@@ -62,11 +66,5 @@ public class ProductService {
             productRepository.save(product);
             log.info("Product restored id={}", id);
         });
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    public void delete(@NotNull Long id) {
-        productRepository.deleteById(id);
-        log.warn("Product hard-deleted id={}", id);
     }
 }

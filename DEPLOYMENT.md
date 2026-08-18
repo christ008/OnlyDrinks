@@ -106,6 +106,8 @@ If `SSL_KEYSTORE_PASSWORD` changed after cert generation:
 ./scripts/deploy.sh regen-certs
 ```
 
+`regen-certs` force-regenerates cert artifacts and recreates `postgres` and `app` containers when the stack is running.
+
 6. Check status/logs:
 
 ```bash
@@ -134,7 +136,6 @@ Access:
 - `MANAGEMENT_SERVER_PORT` (default `8081`)
 - `MANAGEMENT_SERVER_SSL_ENABLED` (default `false`)
 - `BOOTSTRAP_ADMIN_ENABLED`, `BOOTSTRAP_ADMIN_USERNAME`, `BOOTSTRAP_ADMIN_NAME`, `BOOTSTRAP_ADMIN_PASSWORD`
-- `JVM_GC_OPTS` (optional, default: `-XX:+UseZGC -XX:+ZGenerational`)
 
 ### Why Management Port 8081 Exists
 

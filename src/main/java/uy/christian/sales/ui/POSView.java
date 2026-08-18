@@ -17,6 +17,7 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Validator;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.MessageSource;
+import org.springframework.dao.OptimisticLockingFailureException;
 import uy.christian.base.ui.FormValidation;
 import uy.christian.base.ui.MessageSupport;
 import uy.christian.base.ui.NotificationUtils;
@@ -181,6 +182,10 @@ public class POSView extends VerticalLayout implements MessageSupport {
             currentOrder.setCustomer(customerComboBox.getValue());
             posService.placeOrder(currentOrder);
             NotificationUtils.showSuccess(msg("pos.notify.placed"));
+            resetOrder();
+        } catch (OptimisticLockingFailureException e) {
+            // Another order changed the stock concurrently; ask the barman to retry with fresh data.
+            NotificationUtils.showError(msg("pos.error.concurrent"));
             resetOrder();
         } catch (IllegalStateException e) {
             NotificationUtils.showError(e.getMessage());

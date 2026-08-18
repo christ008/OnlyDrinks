@@ -14,12 +14,15 @@ services:
       DB_USERNAME: ${DB_USERNAME:-onlydrinks}
       DB_PASSWORD: ${DB_PASSWORD:?Database password required}
       SSL_KEYSTORE_PATH: file:/certs/keystore.p12
-      SSL_KEYSTORE_PASSWORD: ${SSL_KEYSTORE_PASSWORD:-changeme}
-      JAVA_TOOL_OPTIONS: "${JAVA_TOOL_OPTIONS:-} ${JVM_GC_OPTS:--XX:+UseZGC -XX:+ZGenerational}"
+      SSL_KEYSTORE_PASSWORD: ${SSL_KEYSTORE_PASSWORD:?SSL keystore password required}
       MANAGEMENT_SERVER_PORT: "8081"
       MANAGEMENT_SERVER_SSL_ENABLED: "false"
       THC_PATH: "/actuator/health"
       THC_PORT: 8081
+      BOOTSTRAP_ADMIN_ENABLED: ${BOOTSTRAP_ADMIN_ENABLED:-false}
+      BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME}
+      BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_USERNAME}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD}
     volumes:
       - ./certs:/certs:ro
     healthcheck:
@@ -69,7 +72,8 @@ services:
       - ./certs:/etc/ssl/certs/onlydrinks:ro
       - ./scripts/postgres-ssl-entrypoint.sh:/usr/local/bin/postgres-ssl-entrypoint.sh:ro
     ports:
-      - "${DB_PORT:-5432}:5432"
+      # Bind to loopback only: local access for inspection, not exposed to the network.
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     command:
       - -c
       - ssl=on

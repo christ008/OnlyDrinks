@@ -70,12 +70,13 @@ read_env_file_var() {
 
 get_var() {
   local key="$1"
-  local value="${!key-}"
+  local value
+  value="$(read_env_file_var "$key" || true)"
   if [ -n "$value" ]; then
     printf "%s" "$value"
     return 0
   fi
-  read_env_file_var "$key" || true
+  printf "%s" "${!key-}"
 }
 
 generate_secret() {
@@ -122,6 +123,7 @@ init_secrets() {
 }
 
 validate_env() {
+  local enforce_keystore_check="${1:-true}"
   load_env
 
   local DB_NAME DB_USERNAME DB_PASSWORD SSL_KEYSTORE_PASSWORD BOOTSTRAP_ADMIN_ENABLED BOOTSTRAP_ADMIN_USERNAME BOOTSTRAP_ADMIN_NAME BOOTSTRAP_ADMIN_PASSWORD
@@ -169,7 +171,9 @@ validate_env() {
     fi
   fi
 
-  check_keystore_password
+  if [ "$enforce_keystore_check" = "true" ]; then
+    check_keystore_password
+  fi
 }
 
 check_keystore_password() {
@@ -245,9 +249,12 @@ provision() {
 }
 
 regen_certs() {
-  validate_env
+  validate_env false
   (cd "$ROOT_DIR" && ./scripts/generate-certs.sh --force)
   check_keystore_password
+  if [ -n "$(cd "$ROOT_DIR" && docker compose ps -q postgres)" ]; then
+    (cd "$ROOT_DIR" && docker compose up -d --force-recreate postgres app)
+  fi
 }
 
 cmd="${1:-}"

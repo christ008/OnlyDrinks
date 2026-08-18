@@ -5,6 +5,7 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Menu;
@@ -17,8 +18,8 @@ import uy.christian.sales.OrderItem;
 import uy.christian.sales.OrderService;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 @Route("sales")
 @PageTitle("Sales | OnlyDrinks")
@@ -42,10 +43,26 @@ public class SalesView extends VerticalLayout {
         revenue.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.FontWeight.BOLD);
         add(revenue);
 
+        addSalesByProduct();
+
         configureGrid();
         add(grid);
 
         refreshGrid();
+    }
+
+    private void addSalesByProduct() {
+        Map<String, BigDecimal> salesByProduct = orderService.getSalesByProduct();
+        if (salesByProduct.isEmpty()) {
+            return;
+        }
+        add(new H3("Sales by Product"));
+        Grid<Map.Entry<String, BigDecimal>> productGrid = new Grid<>();
+        productGrid.addColumn(Map.Entry::getKey).setHeader("Product");
+        productGrid.addColumn(entry -> String.format(MONEY_FORMAT, entry.getValue())).setHeader("Total Sales");
+        productGrid.setItems(salesByProduct.entrySet());
+        productGrid.setAllRowsVisible(true);
+        add(productGrid);
     }
 
     private void configureGrid() {

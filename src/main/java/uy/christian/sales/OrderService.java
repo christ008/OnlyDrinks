@@ -8,10 +8,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
+import uy.christian.inventory.Product;
 import uy.christian.inventory.ProductRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,8 +46,17 @@ public class OrderService {
             item.setSubtotal(item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
             total = total.add(item.getSubtotal());
 
-            var product = item.getProduct();
+            // Re-fetch the managed entity so the @Version check guards the decrement
+            // against concurrent orders reading the same stale, session-held stock.
+            Product product = productRepository.findById(requireProductId(item))
+                    .orElseThrow(() -> new IllegalStateException("Product no longer exists"));
+            if (product.getStockQuantity() < item.getQuantity()) {
+                log.warn("Rejected order placement for productId={} due to insufficient stock. requested={} available={}",
+                        product.getId(), item.getQuantity(), product.getStockQuantity());
+                throw new IllegalStateException("Not enough stock for " + product.getName());
+            }
             product.setStockQuantity(product.getStockQuantity() - item.getQuantity());
+            item.setProduct(product);
             productRepository.save(product);
         }
         order.setTotalAmount(total);
@@ -54,17 +65,24 @@ public class OrderService {
         return saved;
     }
 
+    private static Long requireProductId(OrderItem item) {
+        Product product = item.getProduct();
+        if (product == null || product.getId() == null) {
+            throw new IllegalStateException("Order item is missing a persisted product reference");
+        }
+        return product.getId();
+    }
+
     @Transactional(readOnly = true)
     @PreAuthorize("hasRole('MANAGER')")
     public Map<String, BigDecimal> getSalesByProduct() {
         log.debug("Calculating sales by product");
-        return orderRepository.findAllWithDetails().stream()
-                .flatMap(order -> order.getItems().stream())
-                .collect(Collectors.groupingBy(
-                        item -> Optional.ofNullable(item.getProduct())
-                                .map(product -> product.getName())
-                                .orElse("Unknown"),
-                        Collectors.reducing(BigDecimal.ZERO, OrderItem::getSubtotal, BigDecimal::add)
+        return orderRepository.findSalesByProduct().stream()
+                .collect(Collectors.toMap(
+                        ProductSalesProjection::getProductName,
+                        row -> Optional.ofNullable(row.getTotalSales()).orElse(BigDecimal.ZERO),
+                        BigDecimal::add,
+                        LinkedHashMap::new
                 ));
     }
 

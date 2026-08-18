@@ -7,7 +7,7 @@ server:
   ssl:
     enabled: true
     key-store: ${SSL_KEYSTORE_PATH:file:/certs/keystore.p12}
-    key-store-password: ${SSL_KEYSTORE_PASSWORD:changeme}
+    key-store-password: ${SSL_KEYSTORE_PASSWORD}
     key-store-type: PKCS12
     key-alias: onlydrinks
   compression:
@@ -41,7 +41,7 @@ spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:onlydrinks}?ssl=true&sslmode=verify-full&sslrootcert=/certs/ca.crt
     username: ${DB_USERNAME:onlydrinks}
-    password: ${DB_PASSWORD:changeme}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10

@@ -5,7 +5,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import org.hibernate.annotations.SQLDelete;
 import org.jspecify.annotations.Nullable;
 import uy.christian.base.AbstractAuditEntity;
 import java.math.BigDecimal;
@@ -16,7 +15,6 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@SQLDelete(sql = "UPDATE product SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 public class Product extends AbstractAuditEntity {
 
     @Id
@@ -34,7 +32,11 @@ public class Product extends AbstractAuditEntity {
 
     @NotNull(message = "Price is required")
     @Min(value = 0, message = "Price cannot be negative")
+    @Column(precision = 12, scale = 2)
     private BigDecimal price = BigDecimal.ZERO;
+
+    @Version
+    private long version;
 
     private @Nullable LocalDateTime deletedAt;
 

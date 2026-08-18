@@ -32,6 +32,7 @@ public class Order extends AbstractAuditEntity {
     private List<OrderItem> items = new ArrayList<>();
 
     @NotNull(message = "Total amount is required")
+    @Column(precision = 12, scale = 2)
     private BigDecimal totalAmount = BigDecimal.ZERO;
 
     @Override

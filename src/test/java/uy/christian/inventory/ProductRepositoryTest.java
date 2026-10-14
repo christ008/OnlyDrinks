@@ -54,6 +54,26 @@ class ProductRepositoryTest {
         assertTrue(containsId(productRepository.findAllByDeletedAtIsNotNull(), id));
     }
 
+    @Test
+    void lowStockQueryReturnsOnlyActiveProductsAtOrBelowThreshold() {
+        Product low = newProduct("LowStockItem");
+        low.setStockQuantity(3);
+        Product plenty = newProduct("PlentyItem");
+        plenty.setStockQuantity(500);
+        Product archivedLow = newProduct("ArchivedLowItem");
+        archivedLow.setStockQuantity(1);
+        archivedLow.setDeletedAt(LocalDateTime.now());
+        productRepository.saveAll(List.of(low, plenty, archivedLow));
+        productRepository.flush();
+        entityManager.clear();
+
+        List<Product> result = productRepository.findActiveWithStockAtOrBelow(5);
+
+        assertTrue(containsId(result, low.getId()));
+        assertFalse(containsId(result, plenty.getId()));
+        assertFalse(containsId(result, archivedLow.getId()));
+    }
+
     private static boolean containsId(List<Product> products, Long id) {
         return products.stream().anyMatch(p -> id.equals(p.getId()));
     }

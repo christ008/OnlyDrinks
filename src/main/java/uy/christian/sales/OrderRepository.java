@@ -2,8 +2,10 @@ package uy.christian.sales;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
@@ -20,6 +22,11 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("select coalesce(sum(o.totalAmount), 0) from Order o")
     BigDecimal getTotalRevenue();
+
+    @Query("select coalesce(sum(o.totalAmount), 0) from Order o where o.orderDate >= :since")
+    BigDecimal getRevenueSince(@Param("since") LocalDateTime since);
+
+    long countByOrderDateGreaterThanEqual(LocalDateTime since);
 
     @Query("""
             select coalesce(p.name, 'Unknown') as productName,

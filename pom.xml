@@ -40,8 +40,8 @@
         </dependency>
         <dependency>
             <groupId>com.vaadin</groupId>
-            <!-- Replace artifactId with vaadin-core to use only free components -->
-            <artifactId>vaadin</artifactId>
+            <!-- vaadin-core: only free (Apache 2.0) components, so the project builds without a Vaadin Pro license -->
+            <artifactId>vaadin-core</artifactId>
         </dependency>
         <dependency>
             <groupId>com.vaadin</groupId>

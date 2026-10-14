@@ -1,5 +1,7 @@
 # OnlyDrinks
 
+[![CI](https://github.com/christ008/OnlyDrinks/actions/workflows/ci.yml/badge.svg)](https://github.com/christ008/OnlyDrinks/actions/workflows/ci.yml)
+
 OnlyDrinks is a bar management app (point of sale, inventory, customers, sales analytics) built with Java, Spring Boot, Vaadin, PostgreSQL, and Docker Compose. It is a portfolio project that tries to get the unglamorous parts right: concurrency, security, migrations, tests, CI, and a hardened deployment.
 
 ![Dashboard](docs/screenshots/dashboard.jpg)

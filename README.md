@@ -262,4 +262,4 @@ Local and generated artifacts are ignored by default:
 
 ## License
 
-Released into the public domain. See [LICENSE.md](LICENSE.md).
+Released into the public domain under the [Unlicense](UNLICENSE.md).
